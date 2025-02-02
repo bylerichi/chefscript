@@ -45,8 +45,5 @@ export default {
       },
     },
   },
-  plugins: [
-    // Import @tailwindcss/forms as ESM
-    (await import('@tailwindcss/forms')).default,
-  ],
+  plugins: [require("@tailwindcss/forms")],
 }
