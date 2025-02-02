@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: chefscript-api
+    env: node
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: VITE_WINSTON_API_KEY
+        sync: false
+      - key: PORT
+        value: 3001
+      - key: CORS_ORIGIN
+        value: https://chefscript.netlify.app
+    nodeVersion: 18
+    autoDeploy: true
