@@ -40,6 +40,7 @@ app.post('/api/plagiarism', async (req, res) => {
       return res.status(500).json({ message: 'Winston API key is not configured' });
     }
 
+    // Set a longer timeout for the Winston API request
     const response = await axios.post(
       'https://api.gowinston.ai/v2/plagiarism',
       { 
@@ -51,7 +52,9 @@ app.post('/api/plagiarism', async (req, res) => {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json'
         },
-        timeout: 180000 // 3 minutes
+        timeout: 180000, // 3 minutes
+        maxContentLength: 10 * 1024 * 1024, // 10MB
+        maxBodyLength: 10 * 1024 * 1024 // 10MB
       }
     );
 
@@ -64,16 +67,22 @@ app.post('/api/plagiarism', async (req, res) => {
       const message = error.response?.data?.message || error.message;
 
       if (error.code === 'ECONNREFUSED') {
-        return res.status(503).json({ message: 'Service unavailable' });
+        return res.status(503).json({ 
+          message: 'Service is temporarily unavailable. Please try again later.' 
+        });
       }
 
-      if (error.code === 'ECONNABORTED') {
-        return res.status(504).json({ message: 'Request timeout' });
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        return res.status(504).json({ 
+          message: 'The request took too long to process. Please try with a smaller text or try again later.' 
+        });
       }
 
       res.status(status).json({ message });
     } else {
-      res.status(500).json({ message: 'Internal server error' });
+      res.status(500).json({ 
+        message: 'An unexpected error occurred. Please try again later.' 
+      });
     }
   }
 });
@@ -82,6 +91,7 @@ app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+// Global error handlers
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
 });

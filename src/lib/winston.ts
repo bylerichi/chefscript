@@ -4,9 +4,9 @@ import { supabase } from './supabase';
 // Get the API URL from environment variable or fallback to local development URL
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const WINSTON_ENDPOINT = `${API_URL}/plagiarism`;
-
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
+const TIMEOUT = 180000; // 3 minutes
 
 function calculateRequiredTokens(wordCount: number): number {
   return Math.ceil(wordCount / 500) * 2;
@@ -71,7 +71,7 @@ export async function checkPlagiarism(
           headers: {
             'Content-Type': 'application/json'
           },
-          timeout: 180000 // 3 minutes
+          timeout: TIMEOUT
         }
       );
 
@@ -106,7 +106,11 @@ export async function checkPlagiarism(
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const status = error.response?.status;
-        console.error(`Request failed with status ${status}, retrying...`);
+        console.error(`Request failed with status ${status}, attempt ${retries + 1}/${MAX_RETRIES}`);
+
+        if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+          throw new Error('The plagiarism check is taking longer than expected. Please try with a smaller text or try again later.');
+        }
 
         if (status === 401 || status === 402) {
           throw new Error(error.response?.data?.message || error.message);
